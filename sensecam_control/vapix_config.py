@@ -17,10 +17,14 @@ class CameraConfiguration:
     Module for configuration cameras AXIS
     """
 
-    def __init__(self, ip, user, password):
+    def __init__(self, ip, user, password, use_https=False, verify_cert=True):
         self.cam_ip = ip
         self.cam_user = user
         self.cam_password = password
+        self.verify_cert = verify_cert
+        self.protocol = 'http'
+        if use_https:
+            self.protocol = 'https'
 
     def factory_reset_default(self):  # 5.1.3
         """
@@ -33,7 +37,7 @@ class CameraConfiguration:
 
 
         """
-        url = 'http://' + self.cam_ip + '/axis-cgi/factorydefault.cgi'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/factorydefault.cgi'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password))
 
         if resp.status_code == 200:
@@ -51,8 +55,8 @@ class CameraConfiguration:
             Success (OK) or Failure (error and description).
 
         """
-        url = 'http://' + self.cam_ip + '/axis-cgi/hardfactorydefault.cgi'
-        resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password))
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/hardfactorydefault.cgi'
+        resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password), verify=self.verify_cert)
 
         if resp.status_code == 200:
             return resp.text
@@ -69,8 +73,8 @@ class CameraConfiguration:
             Success (OK) or Failure (error and description).
 
         """
-        url = 'http://' + self.cam_ip + '/axis-cgi/restart.cgi'
-        resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password))
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/restart.cgi'
+        resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password), verify=self.verify_cert)
 
         if resp.status_code == 200:
             return resp.text
@@ -79,7 +83,43 @@ class CameraConfiguration:
         text += str(resp.text)
         return text
 
-    def get_server_report(self):  # 5.1.7
+    def get_all_properties(self):  # 8.40
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/basicdeviceinfo.cgi'
+        params = {}
+        params['apiVersion'] = '1.0'
+        params['context'] = 'getAllProperties.%d' % int(datetime.datetime.now().timestamp())
+        params['method'] =  'getAllProperties'
+        resp = requests.post(url, json=params, auth=HTTPDigestAuth(self.cam_user, self.cam_password), verify=self.verify_cert)
+
+        if resp.status_code == 200:
+            respjson = resp.json()
+            if ( 'data' in respjson ):
+                return respjson['data']
+
+        text = str(resp)
+        text += str(resp.text)
+        return text
+
+    def get_properties(self,propertyList=[]):  # 8.40
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/basicdeviceinfo.cgi'
+        params = {}
+        params['apiVersion'] = '1.0'
+        params['context'] = 'getProperties.%d' % int(datetime.datetime.now().timestamp())
+        params['method'] =  'getProperties'
+        params['params'] = {}
+        params['params']['propertyList'] = propertyList
+        resp = requests.post(url, json=params, auth=HTTPDigestAuth(self.cam_user, self.cam_password), verify=self.verify_cert)
+
+        if resp.status_code == 200:
+            respjson = resp.json()
+            if ( 'data' in respjson ):
+                return respjson['data']
+
+        text = str(resp)
+        text += str(resp.text)
+        return text
+
+    def get_server_report(self,mode="text",charset="utf-8"):  # 5.1.7
         """
         This CGI request generates and returns a server report. This report is useful as an
         input when requesting support. The report includes product information, parameter
@@ -89,15 +129,24 @@ class CameraConfiguration:
             Success (OK and server report content text) or Failure (error and description).
 
         """
-        url = 'http://' + self.cam_ip + '/axis-cgi/serverreport.cgi'
-        resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password))
+        if mode not in ["text","zip","zip_with_image"]:
+            raise RuntimeError("Unknown mode \"%s\"" % mode)
+
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/serverreport.cgi?mode=%s' % mode
+        resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password), verify=self.verify_cert)
 
         if resp.status_code == 200:
-            return resp.text
+            if mode == "text":
+                return resp.text
+            else:
+                return resp.content
 
-        text = str(resp)
-        text += str(resp.text)
-        return text
+        if mode == "text":
+            text = str(resp)
+            text += str(resp.text)
+            return text
+        else:
+            return resp
 
     def get_system_log(self):  # 5.1.8.1
         """
@@ -108,8 +157,8 @@ class CameraConfiguration:
             Success (OK and system log content text) or Failure (error and description).
 
         """
-        url = 'http://' + self.cam_ip + '/axis-cgi/systemlog.cgi'
-        resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password))
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/systemlog.cgi'
+        resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password), verify=self.verify_cert)
 
         if resp.status_code == 200:
             return resp.text
@@ -127,8 +176,8 @@ class CameraConfiguration:
             Success (OK and access log content text) or Failure (error and description).
 
         """
-        url = 'http://' + self.cam_ip + '/axis-cgi/accesslog.cgi'
-        resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password))
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/accesslog.cgi'
+        resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password), verify=self.verify_cert)
 
         if resp.status_code == 200:
             return resp.text
@@ -147,8 +196,8 @@ class CameraConfiguration:
                 Error example: Request failed: <error message>
 
         """
-        url = 'http://' + self.cam_ip + '/axis-cgi/date.cgi?action=get'
-        resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password))
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/date.cgi?action=get'
+        resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password), verify=self.verify_cert)
 
         if resp.status_code == 200:
             return resp.text
@@ -178,9 +227,9 @@ class CameraConfiguration:
             'day': day_date
         }
 
-        url = 'http://' + self.cam_ip + '/axis-cgi/date.cgi'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/date.cgi'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                            params=payload)
+                            params=payload, verify=self.verify_cert)
 
         if resp.status_code == 200:
             return resp.text
@@ -214,9 +263,9 @@ class CameraConfiguration:
             'timezone': timezone
         }
 
-        url = 'http://' + self.cam_ip + '/axis-cgi/date.cgi'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/date.cgi'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                            params=payload)
+                            params=payload, verify=self.verify_cert)
 
         if resp.status_code == 200:
             return resp.text
@@ -235,8 +284,8 @@ class CameraConfiguration:
                     image width = <value>
                     image height = <value>
         """
-        url = 'http://' + self.cam_ip + '/axis-cgi/imagesize.cgi?camera=1'
-        resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password))
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/imagesize.cgi?camera=1'
+        resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password), verify=self.verify_cert)
 
         if resp.status_code == 200:
             # vector = resp.text.split()
@@ -262,9 +311,9 @@ class CameraConfiguration:
         payload = {
             'status': camera_status
         }
-        url = 'http://' + self.cam_ip + '/axis-cgi/videostatus.cgi?'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/videostatus.cgi?'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                            params=payload)
+                            params=payload, verify=self.verify_cert)
 
         if resp.status_code == 200:
             return resp.text
@@ -294,9 +343,9 @@ class CameraConfiguration:
             'camera': camera,
             'square_pixel': square_pixel
         }
-        url = 'http://' + self.cam_ip + '/axis-cgi/bitmap/image.bmp'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/bitmap/image.bmp'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                            params=payload)
+                            params=payload, verify=self.verify_cert)
 
         if resp.status_code == 200:
             now = datetime.datetime.now()
@@ -358,9 +407,9 @@ class CameraConfiguration:
             'overlay_image': overlay_image,
             'overlay_position': overlay_position
         }
-        url = 'http://' + self.cam_ip + '/axis-cgi/jpg/image.cgi'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/jpg/image.cgi'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                            params=payload)
+                            params=payload, verify=self.verify_cert)
 
         if resp.status_code == 200:
             now = datetime.datetime.now()
@@ -380,8 +429,8 @@ class CameraConfiguration:
             return type camera, Network camera or ptz camera
 
         """
-        url = 'http://' + self.cam_ip + '/axis-cgi/param.cgi?action=list&group=Brand.ProdType'
-        resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password))
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/param.cgi?action=list&group=Brand.ProdType'
+        resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password), verify=self.verify_cert)
 
         if resp.status_code == 200:
             vector = resp.text.split('=')
@@ -399,8 +448,8 @@ class CameraConfiguration:
             Success (dynamic text overlay) or Failure (Error and description).
 
         """
-        url = 'http://' + self.cam_ip + '/axis-cgi/dynamicoverlay.cgi?action=gettext'
-        resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password))
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/dynamicoverlay.cgi?action=gettext'
+        resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password), verify=self.verify_cert)
 
         if resp.status_code == 200:
             return resp.text
@@ -427,9 +476,9 @@ class CameraConfiguration:
             'camera': camera
         }
 
-        url = 'http://' + self.cam_ip + '/axis-cgi/dynamicoverlay.cgi'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/dynamicoverlay.cgi'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                            params=payload)
+                            params=payload, verify=self.verify_cert)
 
         if resp.status_code == 200:
             return resp.text
@@ -455,9 +504,9 @@ class CameraConfiguration:
             'group': 'root.StreamProfile'
         }
 
-        url = 'http://' + self.cam_ip + '/axis-cgi/param.cgi'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/param.cgi'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                            params=payload)
+                            params=payload, verify=self.verify_cert)
 
         text2 = resp.text.split('\n')
         if resp.status_code == 200:
@@ -518,9 +567,9 @@ class CameraConfiguration:
             'StreamProfile.S.Parameters': text_params
         }
 
-        url = 'http://' + self.cam_ip + '/axis-cgi/param.cgi'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/param.cgi'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                            params=payload)
+                            params=payload, verify=self.verify_cert)
 
         soup = BeautifulSoup(resp.text, features="lxml")
         if resp.status_code == 200:
@@ -565,9 +614,9 @@ class CameraConfiguration:
             'comment': comment
         }
 
-        url = 'http://' + self.cam_ip + '/axis-cgi/pwdgrp.cgi'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/pwdgrp.cgi'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                            params=payload)
+                            params=payload, verify=self.verify_cert)
 
         soup = BeautifulSoup(resp.text, features="lxml")
         if resp.status_code == 200:
@@ -611,9 +660,9 @@ class CameraConfiguration:
             'sgrp': sgroup,
             'comment': comment
         }
-        url = 'http://' + self.cam_ip + '/axis-cgi/pwdgrp.cgi'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/pwdgrp.cgi'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                            params=payload)
+                            params=payload, verify=self.verify_cert)
 
         soup = BeautifulSoup(resp.text, features="lxml")
         if resp.status_code == 200:
@@ -640,9 +689,9 @@ class CameraConfiguration:
             'user': user
         }
 
-        url = 'http://' + self.cam_ip + '/axis-cgi/pwdgrp.cgi'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/pwdgrp.cgi'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                            params=payload)
+                            params=payload, verify=self.verify_cert)
 
         soup = BeautifulSoup(resp.text, features="lxml")
         if resp.status_code == 200:
@@ -664,7 +713,7 @@ class CameraConfiguration:
         payload = {
             'action': 'get'
         }
-        url = 'http://' + self.cam_ip + '/axis-cgi/pwdgrp.cgi'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/pwdgrp.cgi'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
                             params=payload)
 
@@ -703,9 +752,9 @@ class CameraConfiguration:
             'Network.VolatileHostName.ObtainFromDHCP': set_dhcp
         }
 
-        url = 'http://' + self.cam_ip + '/axis-cgi/param.cgi'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/param.cgi'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                            params=payload)
+                            params=payload, verify=self.verify_cert)
 
         if resp.status_code == 200:
             return resp.text
@@ -733,9 +782,9 @@ class CameraConfiguration:
             'ImageSource.I0.Sensor.StabilizerMargin': stabilizer_margin  # 0 a 200
         }
 
-        url = 'http://' + self.cam_ip + '/axis-cgi/param.cgi'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/param.cgi'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                            params=payload)
+                            params=payload, verify=self.verify_cert)
 
         if resp.status_code == 200:
             return resp.text
@@ -760,9 +809,9 @@ class CameraConfiguration:
             'action': 'update',
             'ImageSource.I0.Sensor': capture_mode
         }
-        url = 'http://' + self.cam_ip + '/axis-cgi/param.cgi'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/param.cgi'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                            params=payload)
+                            params=payload, verify=self.verify_cert)
 
         if resp.status_code == 200:
             return resp.text
@@ -790,9 +839,9 @@ class CameraConfiguration:
             'ImageSource.I0.Sensor.LocalContrast': contrast
         }
 
-        url = 'http://' + self.cam_ip + '/axis-cgi/param.cgi'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/param.cgi'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                            params=payload)
+                            params=payload, verify=self.verify_cert)
 
         if resp.status_code == 200:
             return resp.text
@@ -825,9 +874,9 @@ class CameraConfiguration:
             'ImageSource.I0.Sensor.Contrast': contrast
         }
 
-        url = 'http://' + self.cam_ip + '/axis-cgi/param.cgi'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/param.cgi'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                            params=payload)
+                            params=payload, verify=self.verify_cert)
 
         if resp.status_code == 200:
             return resp.text
@@ -857,8 +906,9 @@ class CameraConfiguration:
             'ImageSource.I0.DayNight.ShiftLevel': shift_level
         }
 
-        url = 'http://' + self.cam_ip + '/axis-cgi/param.cgi'
-        resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password), params=payload)
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/param.cgi'
+        resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
+                            params=payload, verify=self.verify_cert)
 
         if resp.status_code == 200:
             return resp.text
@@ -903,9 +953,9 @@ class CameraConfiguration:
             'ImageSource.I0.Sensor.ExposureValue': exposure_value  # nivel de exposição
         }
 
-        url = 'http://' + self.cam_ip + '/axis-cgi/param.cgi'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/param.cgi'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                            params=payload)
+                            params=payload, verify=self.verify_cert)
 
         if resp.status_code == 200:
             return resp.text
@@ -938,9 +988,9 @@ class CameraConfiguration:
             'ImageSource.I0.Sensor.CustomExposureWindow.C0.Right': right
         }
 
-        url = 'http://' + self.cam_ip + '/axis-cgi/param.cgi'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/param.cgi'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                            params=payload)
+                            params=payload, verify=self.verify_cert)
 
         if resp.status_code == 200:
             return resp.text
@@ -967,9 +1017,9 @@ class CameraConfiguration:
 
         }
 
-        url = 'http://' + self.cam_ip + '/axis-cgi/param.cgi'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/param.cgi'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                            params=payload)
+                            params=payload, verify=self.verify_cert)
 
         if resp.status_code == 200:
             return resp.text
@@ -997,9 +1047,9 @@ class CameraConfiguration:
 
         }
 
-        url = 'http://' + self.cam_ip + '/axis-cgi/param.cgi'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/param.cgi'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                            params=payload)
+                            params=payload, verify=self.verify_cert)
 
         if resp.status_code == 200:
             return resp.text
@@ -1032,9 +1082,9 @@ class CameraConfiguration:
             'PTZ.UserAdv.U1.ImageFreeze': image_freeze_ptz
         }
 
-        url = 'http://' + self.cam_ip + '/axis-cgi/param.cgi'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/param.cgi'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                            params=payload)
+                            params=payload, verify=self.verify_cert)
 
         if resp.status_code == 200:
             return resp.text
@@ -1058,9 +1108,9 @@ class CameraConfiguration:
             'Time.NTP.Server': ntp_server,
         }
 
-        url = 'http://' + self.cam_ip + '/axis-cgi/param.cgi'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/param.cgi'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                            params=payload)
+                            params=payload, verify=self.verify_cert)
 
         if resp.status_code == 200:
             return resp.text
@@ -1089,9 +1139,9 @@ class CameraConfiguration:
             'PTZ.Various.V1.TiltEnabled': tilt_enable,
             'PTZ.Various.V1.ZoomEnabled': zoom_enable
         }
-        url = 'http://' + self.cam_ip + '/axis-cgi/param.cgi'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/param.cgi'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                            params=payload)
+                            params=payload, verify=self.verify_cert)
 
         if resp.status_code == 200:
             return resp.text
@@ -1115,9 +1165,9 @@ class CameraConfiguration:
             'autofocus': focus
         }
 
-        url = 'http://' + self.cam_ip + '/axis-cgi/com/ptz.cgi'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/com/ptz.cgi'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                            params=payload)
+                            params=payload, verify=self.verify_cert)
 
         if resp.status_code == 200:
             return resp.text
@@ -1141,9 +1191,9 @@ class CameraConfiguration:
             'autoiris': iris
         }
 
-        url = 'http://' + self.cam_ip + '/axis-cgi/com/ptz.cgi'
+        url = self.protocol + '://' + self.cam_ip + '/axis-cgi/com/ptz.cgi'
         resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                            params=payload)
+                            params=payload, verify=self.verify_cert)
 
         if resp.status_code == 200:
             return resp.text
@@ -1151,3 +1201,45 @@ class CameraConfiguration:
         text2 = str(resp)
         text2 += str(resp.text)
         return text2
+
+    def get_client_certificates(self):
+        payload = """<SOAP-ENV:Envelope xmlns:wsdl="//schemas.xmlsoap.org/wsdl/"
+xmlns:xs="//www.w3.org/2001/XMLSchema"
+xmlns:tds="//www.onvif.org/ver10/device/wsdl"
+xmlns:xsi="//www.w3.org/2001/XMLSchema-instance"
+xmlns:xsd="//www.w3.org/2001/XMLSchema"
+xmlns:onvif="//www.onvif.org/ver10/schema"
+xmlns:tt="//www.onvif.org/ver10/schema"
+xmlns:SOAP-ENV="//www.w3.org/2003/05/soap-envelope">
+  <SOAP-ENV:Body>
+    <tds:GetCertificates xmlns="//www.onvif.org/ver10/device/wsdl" />
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>"""
+        headers = {
+            'Content-Type': 'text/soap+xml; charset=utf-8'
+        }
+
+        url = self.protocol + '://' + self.cam_ip + '/vapix/services'
+        resp = requests.post(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
+                             data=payload, headers=headers, verify=self.verify_cert)
+
+        print("URL:  %s" % resp.url)
+        print("Request headers:")
+        for key in sorted(headers.keys()):
+            print("\t%s: %s" % (key,headers[key]))
+        print("Request payload:")
+        print(payload)
+        print("Response headers:")
+        for key in sorted(resp.headers.keys()):
+            print("\t%s: %s" % (key,resp.headers[key]))
+        print("HTTP status %d: %s" % (resp.status_code,resp.reason))
+        try:
+            soup = BeautifulSoup(resp.text, features="lxml")
+            print(soup.get_text())
+        except:
+            print("No XML payload?")
+        if resp.status_code == 200:
+            return resp.text
+        else:
+            return None
+
