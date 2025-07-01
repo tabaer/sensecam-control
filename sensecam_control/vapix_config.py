@@ -1307,17 +1307,6 @@ class CameraConfiguration:
         url = self.protocol + '://' + self.cam_ip + '/config/rest/cert/v1/create_certificate'
         resp = requests.post(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
                              headers=headers, json=payload, verify=self.verify_cert)
-        #print("URL:  %s" % resp.url)
-        #print("Request headers:")
-        #for key in sorted(headers.keys()):
-        #    print("\t%s: %s" % (key,headers[key]))
-        #print("Request payload")
-        #print(json.dumps(payload,sort_keys=True,indent=4))
-        #print("Response headers:")
-        #for key in sorted(resp.headers.keys()):
-        #    print("\t%s: %s" % (key,resp.headers[key]))
-        #print("HTTP status %d: %s" % (resp.status_code,resp.reason))
-        #response = {}
         try:
             response = json.loads(resp.text)
             if 'status' not in response:
@@ -1325,12 +1314,12 @@ class CameraConfiguration:
             elif response['status']!='success':
                 raise RuntimeError('Response status is %s' % response['status'])
             elif resp.status_code == 201:
-                return response['data']
+                return True
         except Exception as e:
             print(e)
             print("Problem processing response:")
             print(resp.text)
-            return []
+            return False
 
     def delete_certificate(self,alias):
         headers = {
@@ -1346,10 +1335,10 @@ class CameraConfiguration:
                 raise RuntimeError('Response missing status')
             elif response['status']!='success':
                 raise RuntimeError('Response status is %s' % response['status'])
-            elif resp.status_code == 201:
-                return response['data']
+            elif resp.status_code == 200:
+                return True
         except Exception as e:
             print(e)
             print("Problem processing response:")
             print(resp.text)
-            return []
+            return False
