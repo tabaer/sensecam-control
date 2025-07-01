@@ -1254,4 +1254,26 @@ class CameraConfiguration:
             print("Problem processing response:")
             print(resp.text)
             return []
+
+    def get_ca_certificate(self,alias):
+        headers = {
+            'Content-Type': 'application/json',
+        }
+
+        url = self.protocol + '://' + self.cam_ip + '/config/rest/cert/v1/ca_certificates/' + alias
+        resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
+                            headers=headers, verify=self.verify_cert)
+        try:
+            response = json.loads(resp.text)
+            if 'status' not in response:
+                raise RuntimeError('Response missing status')
+            elif response['status']!='success':
+                raise RuntimeError('Response status is %s' % response['status'])
+            elif resp.status_code == 200:
+                return response['data']
+        except Exception as e:
+            print(e)
+            print("Problem processing response:")
+            print(resp.text)
+            return []
         
