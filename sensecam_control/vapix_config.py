@@ -4,7 +4,7 @@ Library for configuring AXIS cameras
 import urllib.parse
 import datetime
 import requests
-from bs4 import BeautifulSoup
+import json
 from requests.auth import HTTPDigestAuth
 
 
@@ -1203,43 +1203,33 @@ class CameraConfiguration:
         return text2
 
     def get_client_certificates(self):
-        payload = """<SOAP-ENV:Envelope xmlns:wsdl="//schemas.xmlsoap.org/wsdl/"
-xmlns:xs="//www.w3.org/2001/XMLSchema"
-xmlns:tds="//www.onvif.org/ver10/device/wsdl"
-xmlns:xsi="//www.w3.org/2001/XMLSchema-instance"
-xmlns:xsd="//www.w3.org/2001/XMLSchema"
-xmlns:onvif="//www.onvif.org/ver10/schema"
-xmlns:tt="//www.onvif.org/ver10/schema"
-xmlns:SOAP-ENV="//www.w3.org/2003/05/soap-envelope">
-  <SOAP-ENV:Body>
-    <tds:GetCertificates xmlns="//www.onvif.org/ver10/device/wsdl" />
-  </SOAP-ENV:Body>
-</SOAP-ENV:Envelope>"""
         headers = {
-            'Content-Type': 'text/soap+xml; charset=utf-8'
+            'Content-Type': 'application/json',
         }
 
-        url = self.protocol + '://' + self.cam_ip + '/vapix/services'
-        resp = requests.post(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
-                             data=payload, headers=headers, verify=self.verify_cert)
-
-        print("URL:  %s" % resp.url)
-        print("Request headers:")
-        for key in sorted(headers.keys()):
-            print("\t%s: %s" % (key,headers[key]))
-        print("Request payload:")
-        print(payload)
-        print("Response headers:")
-        for key in sorted(resp.headers.keys()):
-            print("\t%s: %s" % (key,resp.headers[key]))
-        print("HTTP status %d: %s" % (resp.status_code,resp.reason))
+        url = self.protocol + '://' + self.cam_ip + '/config/rest/cert/v1/certificates'
+        resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
+                            headers=headers, verify=self.verify_cert)
+        #print("URL:  %s" % resp.url)
+        #print("Request headers:")
+        #for key in sorted(headers.keys()):
+        #    print("\t%s: %s" % (key,headers[key]))
+        #print("Response headers:")
+        #for key in sorted(resp.headers.keys()):
+        #    print("\t%s: %s" % (key,resp.headers[key]))
+        #print("HTTP status %d: %s" % (resp.status_code,resp.reason))
+        #response = {}
         try:
-            soup = BeautifulSoup(resp.text, features="lxml")
-            print(soup.get_text())
-        except:
-            print("No XML payload?")
-        if resp.status_code == 200:
-            return resp.text
-        else:
-            return None
+            response = json.loads(resp.text)
+            if 'status' not in response:
+                raise RuntimeError('Response missing status')
+            elif response['status']!='success':
+                raise RuntimeError('Response status is %s' % resp['status'])
+            elif resp.status_code == 200:
+                return response['data']
+        except Exception as e:
+            print(e)
+            print("Problem processing response:")
+            print(resp.text)
+            return []
 
