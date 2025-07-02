@@ -1442,6 +1442,65 @@ class CameraConfiguration:
             self.log_exception(logging.INFO,e,url,'PATCH',resp,headers=headers,payload=payload)
             return False
 
+    def upload_ca_certificate(self,alias,certificate,certificate_encoding='PEM'):
+        headers = {
+            'Content-Type': 'application/json',
+        }
+        payload = {
+            'data': {
+                'alias': alias,
+            }
+        }
+        if certificate_encoding in ['PEM']:
+            payload['data']['certificate'] = certificate
+        else:
+            raise RuntimeException('Unsupported certificate encoding "%s"' % certificate_encoding)
+
+        url = self.protocol + '://' + self.cam_ip + '/config/rest/cert/v1/ca_certificates'
+        resp = requests.post(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
+                             headers=headers, json=payload, verify=self.verify_cert)
+        try:
+            response = json.loads(resp.text)
+            if 'status' not in response:
+                raise RuntimeError('Response missing status')
+            elif response['status']!='success':
+                raise RuntimeError('Response status is %s' % response['status'])
+            elif resp.status_code == 200:
+                return True
+            else:
+                raise RuntimeError('Unexpected HTTP status %d' % resp.status_code)
+        except Exception as e:
+            self.log_exception(logging.INFO,e,url,'POST',resp,headers=headers,payload=payload)
+            return False
+
+    def replace_ca_certificate(self,alias,certificate,certificate_encoding='PEM'):
+        headers = {
+            'Content-Type': 'application/json',
+        }
+        payload = {
+            'data': {}
+        }
+        if certificate_encoding in ['PEM']:
+            payload['data']['certificate'] = certificate
+        else:
+            raise RuntimeException('Unsupported certificate encoding "%s"' % certificate_encoding)
+
+        url = self.protocol + '://' + self.cam_ip + '/config/rest/cert/v1/ca_certificates/' + alias
+        resp = requests.patch(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
+                              headers=headers, json=payload, verify=self.verify_cert)
+        try:
+            response = json.loads(resp.text)
+            if 'status' not in response:
+                raise RuntimeError('Response missing status')
+            elif response['status']!='success':
+                raise RuntimeError('Response status is %s' % response['status'])
+            elif resp.status_code == 200:
+                return True
+            else:
+                raise RuntimeError('Unexpected HTTP status %d' % resp.status_code)
+        except Exception as e:
+            self.log_exception(logging.INFO,e,url,'PATCH',resp,headers=headers,payload=payload)
+            return False
 
     def delete_certificate(self,alias):
         headers = {
