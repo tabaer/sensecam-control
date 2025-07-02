@@ -1300,9 +1300,9 @@ class CameraConfiguration:
         if len(subject_alt_names)>0:
             payload['data']['subject_alt_names'] = subject_alt_names
         if key_type is not None:
-            payload['data']['key_type'] = key_type,
+            payload['data']['key_type'] = key_type
         if keystore is not None:
-            payload['data']['keystore'] = keystore,
+            payload['data']['keystore'] = keystore
 
         url = self.protocol + '://' + self.cam_ip + '/config/rest/cert/v1/create_certificate'
         resp = requests.post(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
@@ -1314,6 +1314,50 @@ class CameraConfiguration:
             elif response['status']!='success':
                 raise RuntimeError('Response status is %s' % response['status'])
             elif resp.status_code == 201:
+                return True
+        except Exception as e:
+            print(e)
+            print("Problem processing response:")
+            print(resp.text)
+            return False
+
+    def get_csr(self,
+                alias,
+                subject=None,
+                subject_alt_names=[],
+                key_type=None,
+                keystore=None,
+                valid_from=None,
+                valid_to=None):
+        headers = {
+            'Content-Type': 'application/json',
+        }
+        payload = {
+            'data': {},
+        }
+        if subject is not None:
+            payload['data']['subject'] = subject
+        if len(subject_alt_names)>0:
+            payload['data']['subject_alt_names'] = subject_alt_names
+        if key_type is not None:
+            payload['data']['key_type'] = key_type
+        if keystore is not None:
+            payload['data']['keystore'] = keystore
+        if valid_from is not None:
+            payload['data']['valid_from'] = int(valid_from)
+        if valid_to is not None:
+            payload['data']['valid_to'] = int(valid_from)
+
+        url = self.protocol + '://' + self.cam_ip + '/config/rest/cert/v1/certificates/' + alias + '/get_csr'
+        resp = requests.post(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
+                             headers=headers, json=payload, verify=self.verify_cert)
+        try:
+            response = json.loads(resp.text)
+            if 'status' not in response:
+                raise RuntimeError('Response missing status')
+            elif response['status']!='success':
+                raise RuntimeError('Response status is %s' % response['status'])
+            elif resp.status_code == 200:
                 return True
         except Exception as e:
             print(e)
