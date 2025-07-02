@@ -1364,7 +1364,6 @@ class CameraConfiguration:
                              headers=headers, json=payload, verify=self.verify_cert)
         try:
             response = json.loads(resp.text)
-            print(json.dumps(response,sort_keys=True,indent=4))
             if 'status' not in response:
                 raise RuntimeError('Response missing status')
             elif response['status']!='success':
@@ -1376,6 +1375,43 @@ class CameraConfiguration:
         except Exception as e:
             self.log_exception(logging.INFO,e,url,'POST',resp,headers=headers,payload=payload)
             return {}
+
+    def upload_certificate(self,alias,certificate,private_key,keystore=None,certificate_encoding='PEM',private_key_encoding='PEM'):
+        headers = {
+            'Content-Type': 'application/json',
+        }
+        payload = {
+            'data': {
+                'alias': alias,
+            }
+        }
+        if keystore is not None:
+            payload['data']['keystore'] = keystore
+        if certificate_encoding in ['PEM']:
+            payload['data']['certificate'] = certificate
+        else:
+            raise RuntimeException('Unsupported certificate encoding "%s"' % certificate_encoding)
+        if private_key_encoding in ['PEM']:
+            payload['data']['private_key'] = private_key
+        else:
+            raise RuntimeException('Unsupported private key encoding "%s"' % private_key_encoding)
+
+        url = self.protocol + '://' + self.cam_ip + '/config/rest/cert/v1/certificates'
+        resp = requests.post(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
+                             headers=headers, json=payload, verify=self.verify_cert)
+        try:
+            response = json.loads(resp.text)
+            if 'status' not in response:
+                raise RuntimeError('Response missing status')
+            elif response['status']!='success':
+                raise RuntimeError('Response status is %s' % response['status'])
+            elif resp.status_code == 200:
+                return True
+            else:
+                raise RuntimeError('Unexpected HTTP status %d' % resp.status_code)
+        except Exception as e:
+            self.log_exception(logging.INFO,e,url,'POST',resp,headers=headers,payload=payload)
+            return False
 
     def delete_certificate(self,alias):
         headers = {
