@@ -6,6 +6,8 @@ import datetime
 import requests
 import json
 import time
+import logging
+import sys
 from requests.auth import HTTPDigestAuth
 
 
@@ -18,7 +20,7 @@ class CameraConfiguration:
     Module for configuration cameras AXIS
     """
 
-    def __init__(self, ip, user, password, use_https=False, verify_cert=True):
+    def __init__(self, ip, user, password, use_https=False, verify_cert=True, logger=logging.getLogger(__name__), log_level=logging.INFO):
         self.cam_ip = ip
         self.cam_user = user
         self.cam_password = password
@@ -26,6 +28,12 @@ class CameraConfiguration:
         self.protocol = 'http'
         if use_https:
             self.protocol = 'https'
+        self.logger = logger
+        self.logger.setLevel(log_level)
+        self.logger.addHandler(logging.StreamHandler(sys.stderr))
+
+    def log_exception(self, sev, exception, url, method, response, headers={}, payload={}):
+        self.logger.log(sev,'%s: method=%s url="%s" headers=%s payload=%s http_status=%d response="%s"' % (exception,method,url,json.dumps(headers),json.dumps(payload),response.status_code,response.text))
 
     def factory_reset_default(self):  # 5.1.3
         """
@@ -1229,9 +1237,7 @@ class CameraConfiguration:
             elif resp.status_code == 200:
                 return response['data']
         except Exception as e:
-            print(e)
-            print("Problem processing response:")
-            print(resp.text)
+            self.log_exception(logging.INFO,e,url,'GET',resp,headers=headers)
             return []
 
     def get_ca_certificates(self):
@@ -1251,9 +1257,7 @@ class CameraConfiguration:
             elif resp.status_code == 200:
                 return response['data']
         except Exception as e:
-            print(e)
-            print("Problem processing response:")
-            print(resp.text)
+            self.log_exception(logging.INFO,e,url,'GET',resp,headers=headers)
             return []
 
     def get_ca_certificate(self,alias):
@@ -1273,9 +1277,7 @@ class CameraConfiguration:
             elif resp.status_code == 200:
                 return response['data']
         except Exception as e:
-            print(e)
-            print("Problem processing response:")
-            print(resp.text)
+            self.log_exception(logging.INFO,e,url,'GET',resp,headers=headers)
             return {}
 
     def create_certificate(self,
@@ -1316,9 +1318,7 @@ class CameraConfiguration:
             elif resp.status_code == 201:
                 return True
         except Exception as e:
-            print(e)
-            print("Problem processing response:")
-            print(resp.text)
+            self.log_exception(logging.INFO,e,url,'POST',resp,headers=headers,payload=payload)
             return False
 
     def get_csr(self,
@@ -1360,9 +1360,7 @@ class CameraConfiguration:
             elif resp.status_code == 200:
                 return True
         except Exception as e:
-            print(e)
-            print("Problem processing response:")
-            print(resp.text)
+            self.log_exception(logging.INFO,e,url,'POST',resp,headers=headers,payload=payload)
             return False
 
     def delete_certificate(self,alias):
@@ -1382,9 +1380,7 @@ class CameraConfiguration:
             elif resp.status_code == 200:
                 return True
         except Exception as e:
-            print(e)
-            print("Problem processing response:")
-            print(resp.text)
+            self.log_exception(logging.INFO,e,url,'DELETE',resp,headers=headers)
             return False
 
     def delete_ca_certificate(self,alias):
@@ -1404,9 +1400,7 @@ class CameraConfiguration:
             elif resp.status_code == 200:
                 return True
         except Exception as e:
-            print(e)
-            print("Problem processing response:")
-            print(resp.text)
+            self.log_exception(logging.INFO,e,url,'DELETE',resp,headers=headers)
             return False
 
     def get_keystores(self):
@@ -1426,9 +1420,7 @@ class CameraConfiguration:
             elif resp.status_code == 200:
                 return response['data']
         except Exception as e:
-            print(e)
-            print("Problem processing response:")
-            print(resp.text)
+            self.log_exception(logging.INFO,e,url,'GET',resp,headers=headers)
             return []
 
     def get_keystore(self,alias):
@@ -1448,9 +1440,7 @@ class CameraConfiguration:
             elif resp.status_code == 200:
                 return response['data']
         except Exception as e:
-            print(e)
-            print("Problem processing response:")
-            print(resp.text)
+            self.log_exception(logging.INFO,e,url,'GET',resp,headers=headers)
             return {}
 
     def get_default_keystore(self):
@@ -1470,9 +1460,7 @@ class CameraConfiguration:
             elif resp.status_code == 200:
                 return response['data']
         except Exception as e:
-            print(e)
-            print("Problem processing response:")
-            print(resp.text)
+            self.log_exception(logging.INFO,e,url,'GET',resp,headers=headers)
             return {}
 
     def set_default_keystore(self,alias):
@@ -1495,7 +1483,5 @@ class CameraConfiguration:
             elif resp.status_code == 200:
                 return True
         except Exception as e:
-            print(e)
-            print("Problem processing response:")
-            print(resp.text)
+            self.log_exception(logging.INFO,e,url,'PATCH',resp,headers=headers,payload=payload)
             return False
