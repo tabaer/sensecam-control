@@ -20,11 +20,13 @@ class CameraConfiguration:
     Module for configuration cameras AXIS
     """
 
-    def __init__(self, ip, user, password, use_https=False, verify_cert=True, logger=logging.getLogger(__name__), log_level=logging.INFO):
+    def __init__(self, ip, user, password, use_https=False, verify_cert=True, disable_ssl_warnings=False, logger=logging.getLogger(__name__), log_level=logging.INFO):
         self.cam_ip = ip
         self.cam_user = user
         self.cam_password = password
         self.verify_cert = verify_cert
+        if disable_ssl_warnings:
+            requests.packages.urllib3.disable_warnings()
         self.protocol = 'http'
         if use_https:
             self.protocol = 'https'
