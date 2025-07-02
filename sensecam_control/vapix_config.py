@@ -1239,6 +1239,8 @@ class CameraConfiguration:
                 raise RuntimeError('Response status is %s' % resp['status'])
             elif resp.status_code == 200:
                 return response['data']
+            else:
+                raise RuntimeError('Unexpected HTTP status %d' % resp.status_code)
         except Exception as e:
             self.log_exception(logging.INFO,e,url,'GET',resp,headers=headers)
             return []
@@ -1259,6 +1261,8 @@ class CameraConfiguration:
                 raise RuntimeError('Response status is %s' % resp['status'])
             elif resp.status_code == 200:
                 return response['data']
+            else:
+                raise RuntimeError('Unexpected HTTP status %d' % resp.status_code)
         except Exception as e:
             self.log_exception(logging.INFO,e,url,'GET',resp,headers=headers)
             return []
@@ -1279,6 +1283,8 @@ class CameraConfiguration:
                 raise RuntimeError('Response status is %s' % response['status'])
             elif resp.status_code == 200:
                 return response['data']
+            else:
+                raise RuntimeError('Unexpected HTTP status %d' % resp.status_code)
         except Exception as e:
             self.log_exception(logging.INFO,e,url,'GET',resp,headers=headers)
             return {}
@@ -1320,6 +1326,8 @@ class CameraConfiguration:
                 raise RuntimeError('Response status is %s' % response['status'])
             elif resp.status_code == 201:
                 return True
+            else:
+                raise RuntimeError('Unexpected HTTP status %d' % resp.status_code)
         except Exception as e:
             self.log_exception(logging.INFO,e,url,'POST',resp,headers=headers,payload=payload)
             return False
@@ -1356,15 +1364,18 @@ class CameraConfiguration:
                              headers=headers, json=payload, verify=self.verify_cert)
         try:
             response = json.loads(resp.text)
+            print(json.dumps(response,sort_keys=True,indent=4))
             if 'status' not in response:
                 raise RuntimeError('Response missing status')
             elif response['status']!='success':
                 raise RuntimeError('Response status is %s' % response['status'])
-            elif resp.status_code == 200:
-                return True
+            elif resp.status_code == 201:
+                return response['data']
+            else:
+                raise RuntimeError('Unexpected HTTP status %d' % resp.status_code)
         except Exception as e:
             self.log_exception(logging.INFO,e,url,'POST',resp,headers=headers,payload=payload)
-            return False
+            return {}
 
     def delete_certificate(self,alias):
         headers = {
@@ -1382,6 +1393,8 @@ class CameraConfiguration:
                 raise RuntimeError('Response status is %s' % response['status'])
             elif resp.status_code == 200:
                 return True
+            else:
+                raise RuntimeError('Unexpected HTTP status %d' % resp.status_code)
         except Exception as e:
             self.log_exception(logging.INFO,e,url,'DELETE',resp,headers=headers)
             return False
@@ -1402,6 +1415,8 @@ class CameraConfiguration:
                 raise RuntimeError('Response status is %s' % response['status'])
             elif resp.status_code == 200:
                 return True
+            else:
+                raise RuntimeError('Unexpected HTTP status %d' % resp.status_code)
         except Exception as e:
             self.log_exception(logging.INFO,e,url,'DELETE',resp,headers=headers)
             return False
@@ -1422,6 +1437,8 @@ class CameraConfiguration:
                 raise RuntimeError('Response status is %s' % response['status'])
             elif resp.status_code == 200:
                 return response['data']
+            else:
+                raise RuntimeError('Unexpected HTTP status %d' % resp.status_code)
         except Exception as e:
             self.log_exception(logging.INFO,e,url,'GET',resp,headers=headers)
             return []
@@ -1442,6 +1459,8 @@ class CameraConfiguration:
                 raise RuntimeError('Response status is %s' % response['status'])
             elif resp.status_code == 200:
                 return response['data']
+            else:
+                raise RuntimeError('Unexpected HTTP status %d' % resp.status_code)
         except Exception as e:
             self.log_exception(logging.INFO,e,url,'GET',resp,headers=headers)
             return {}
@@ -1462,6 +1481,8 @@ class CameraConfiguration:
                 raise RuntimeError('Response status is %s' % response['status'])
             elif resp.status_code == 200:
                 return response['data']
+            else:
+                raise RuntimeError('Unexpected HTTP status %d' % resp.status_code)
         except Exception as e:
             self.log_exception(logging.INFO,e,url,'GET',resp,headers=headers)
             return {}
@@ -1485,6 +1506,8 @@ class CameraConfiguration:
                 raise RuntimeError('Response status is %s' % response['status'])
             elif resp.status_code == 200:
                 return True
+            else:
+                raise RuntimeError('Unexpected HTTP status %d' % resp.status_code)
         except Exception as e:
             self.log_exception(logging.INFO,e,url,'PATCH',resp,headers=headers,payload=payload)
             return False
