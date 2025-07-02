@@ -32,8 +32,11 @@ class CameraConfiguration:
         self.logger.setLevel(log_level)
         self.logger.addHandler(logging.StreamHandler(sys.stderr))
 
-    def log_exception(self, sev, exception, url, method, response, headers={}, payload={}):
-        self.logger.log(sev,'%s: method=%s url="%s" headers=%s payload=%s http_status=%d response="%s"' % (exception,method,url,json.dumps(headers),json.dumps(payload),response.status_code,response.text))
+    def log_exception(self, sev, exception, url, method, response, headers={}, payload=None):
+        if payload is not None:
+            self.logger.log(sev,'%s: method=%s url="%s" headers=%s payload=%s http_status=%d response="%s"' % (exception,method,url,json.dumps(headers),json.dumps(payload),response.status_code,response.text))
+        else:
+            self.logger.log(sev,'%s: method=%s url="%s" headers=%s http_status=%d response="%s"' % (exception,method,url,json.dumps(headers),response.status_code,response.text))
 
     def factory_reset_default(self):  # 5.1.3
         """
