@@ -1430,3 +1430,28 @@ class CameraConfiguration:
             print("Problem processing response:")
             print(resp.text)
             return {}
+
+    def set_default_keystore(self,alias):
+        headers = {
+            'Content-Type': 'application/json',
+        }
+        payload = {
+            'data': alias,
+        }
+
+        url = self.protocol + '://' + self.cam_ip + '/config/rest/cert/v1/settings/keystore'
+        resp = requests.patch(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
+                              headers=headers, json=payload, verify=self.verify_cert)
+        try:
+            response = json.loads(resp.text)
+            if 'status' not in response:
+                raise RuntimeError('Response missing status')
+            elif response['status']!='success':
+                raise RuntimeError('Response status is %s' % response['status'])
+            elif resp.status_code == 200:
+                return True
+        except Exception as e:
+            print(e)
+            print("Problem processing response:")
+            print(resp.text)
+            return False
