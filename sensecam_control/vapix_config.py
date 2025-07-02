@@ -1214,7 +1214,7 @@ class CameraConfiguration:
         text2 += str(resp.text)
         return text2
 
-    def get_client_certificates(self):
+    def get_certificates(self):
         headers = {
             'Content-Type': 'application/json',
         }
