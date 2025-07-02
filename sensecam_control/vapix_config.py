@@ -1276,7 +1276,7 @@ class CameraConfiguration:
             print(e)
             print("Problem processing response:")
             print(resp.text)
-            return []
+            return {}
 
     def create_certificate(self,
                            alias,
@@ -1342,3 +1342,91 @@ class CameraConfiguration:
             print("Problem processing response:")
             print(resp.text)
             return False
+
+    def delete_ca_certificate(self,alias):
+        headers = {
+            'Content-Type': 'application/json',
+        }
+
+        url = self.protocol + '://' + self.cam_ip + '/config/rest/cert/v1/ca_certificates/' + alias
+        resp = requests.delete(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
+                               headers=headers, verify=self.verify_cert)
+        try:
+            response = json.loads(resp.text)
+            if 'status' not in response:
+                raise RuntimeError('Response missing status')
+            elif response['status']!='success':
+                raise RuntimeError('Response status is %s' % response['status'])
+            elif resp.status_code == 200:
+                return True
+        except Exception as e:
+            print(e)
+            print("Problem processing response:")
+            print(resp.text)
+            return False
+
+    def get_keystores(self):
+        headers = {
+            'Content-Type': 'application/json',
+        }
+
+        url = self.protocol + '://' + self.cam_ip + '/config/rest/cert/v1/keystores'
+        resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
+                            headers=headers, verify=self.verify_cert)
+        try:
+            response = json.loads(resp.text)
+            if 'status' not in response:
+                raise RuntimeError('Response missing status')
+            elif response['status']!='success':
+                raise RuntimeError('Response status is %s' % response['status'])
+            elif resp.status_code == 200:
+                return response['data']
+        except Exception as e:
+            print(e)
+            print("Problem processing response:")
+            print(resp.text)
+            return []
+
+    def get_keystore(self,alias):
+        headers = {
+            'Content-Type': 'application/json',
+        }
+
+        url = self.protocol + '://' + self.cam_ip + '/config/rest/cert/v1/keystores/' + alias
+        resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
+                            headers=headers, verify=self.verify_cert)
+        try:
+            response = json.loads(resp.text)
+            if 'status' not in response:
+                raise RuntimeError('Response missing status')
+            elif response['status']!='success':
+                raise RuntimeError('Response status is %s' % response['status'])
+            elif resp.status_code == 200:
+                return response['data']
+        except Exception as e:
+            print(e)
+            print("Problem processing response:")
+            print(resp.text)
+            return {}
+
+    def get_default_keystore(self):
+        headers = {
+            'Content-Type': 'application/json',
+        }
+
+        url = self.protocol + '://' + self.cam_ip + '/config/rest/cert/v1/settings/keystore'
+        resp = requests.get(url, auth=HTTPDigestAuth(self.cam_user, self.cam_password),
+                            headers=headers, verify=self.verify_cert)
+        try:
+            response = json.loads(resp.text)
+            if 'status' not in response:
+                raise RuntimeError('Response missing status')
+            elif response['status']!='success':
+                raise RuntimeError('Response status is %s' % response['status'])
+            elif resp.status_code == 200:
+                return response['data']
+        except Exception as e:
+            print(e)
+            print("Problem processing response:")
+            print(resp.text)
+            return {}
